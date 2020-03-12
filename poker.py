@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-def kinds(num):         #牌型名对应数字
+def kinds(num):             #牌型名对应数字
     if num == 1:
         return "High Card: "
     if num == 2:
@@ -184,12 +184,83 @@ def deal(side):                 #判断牌
     # print(ints)
     return ans, ints
 
+def compare(ansb, b, answ, w):
+    if ansb > answ:         #Black嬴
+        return "Black wins", kinds(ansb)
+    if ansb < answ:         #White嬴
+        return "White wins", kinds(answ)
+    if ansb == answ:        #牌型相同
+        if ansb == 5 or ansb == 9:   #顺子和同花顺比较最大牌
+            if b[4] > w[4]:
+                return "Black wins", kinds(ansb)
+            if b[4] < w[4]:
+                return "White wins", kinds(answ)
+            else:
+                return "Tie", kinds(ansb)
+        if ansb == 4 or ansb == 7 or ansb == 8:         #三条，葫芦和铁汁同样大小的最大牌
+            if b[4] > w[4]:
+                return "Black wins", kinds(ansb)
+            if b[4] < w[4]:
+                return "White wins", kinds(answ)
+            else:
+                return "Tie", kinds(ansb)
+        if ansb == 1:      #散牌依次比较牌的大小
+            for i in range(4,-1,-1):
+                if b[i] > w[i]:
+                    return "Black wins", kinds(ansb)+change(b[i])
+                if b[i] < w[i]:
+                    return "White wins", kinds(answ)+change(w[i])
+            return "Tie", kinds(ansb)+change(b[4])
+        if ansb == 6:      #同花依次比较牌的大小
+            for i in range(4,-1,-1):
+                if b[i] > w[i]:
+                    return "Black wins", kinds(ansb)
+                if b[i] < w[i]:
+                    return "White wins", kinds(answ)
+            return "Tie", kinds(ansb)
+        if ansb ==3:        #两对比较大对子，小对子，单牌
+            if b[4] > w[4]:
+                return "Black wins", kinds(ansb)
+            if b[4] < w[4]:
+                return "White wins", kinds(answ)
+            else:
+                if b[2] > w[2]:
+                    return "Black wins", kinds(ansb)
+                if b[2] < w[2]:
+                    return "White wins", kinds(answ)
+                else:
+                    if b[0] > w[0]:
+                        return "Black wins", kinds(ansb)
+                    if b[0] < w[0]:
+                        return "White wins", kinds(answ)
+                    else:
+                        return "Tie", kinds(ansb)
+        if ansb ==2:        #比较对子，再比较剩下的单牌
+            if b[4] > w[4]:
+                return "Black wins", kinds(ansb)
+            if b[4] < w[4]:
+                return "White wins", kinds(answ)
+            else:
+                for j in range(2, -1, -1):
+                    if b[j] > w[j]:
+                        return "Black wins", kinds(ansb)
+                    if b[j] < w[j]:
+                        return "White wins", kinds(answ)
+                return "Tie", kinds(ansb)
+
 def main():
     black = input("Black:")          #输入Black牌
     ansb, b = deal(black)
 
     white = input("White:")         #输入White牌
     answ, w = deal(white)
+
+    winner, poker = compare(ansb, b, answ, w)
+    if winner != "Tie":
+        print(winner + " - " + poker)
+    else:
+        print(winner)
+
 
 if __name__ == '__main__':
     main()
@@ -222,4 +293,51 @@ def test_deal():
     a9, b9 = deal("AS TS QS JS KS")
     assert a9 == 9
     assert all(b9 == [10, 11, 12, 13, 14])
+
+def test_compare():
+    a1, b1 = compare(1, [2, 4, 7, 9, 11], 1, [3, 5, 6, 7, 11])
+    assert a1 == "Black wins"
+    assert b1 == "High Card: 9"
+    a2, b2 = compare(1, [2, 4, 7, 9, 11], 1, [3, 5, 6, 7, 14])
+    assert a2 == "White wins"
+    assert b2 == "High Card: Ace"
+    a3, b3 = compare(1, [3, 5, 6, 7, 12], 1, [3, 5, 6, 7, 12])
+    assert a3 == "Tie"
+    assert b3 == "High Card: Queen"
+    a4, b4 = compare(8, [3, 5, 5, 5, 5], 8, [11, 5, 5, 5, 5])
+    assert a4 == "Tie"
+    assert b4 == "Four of a kind"
+    a4, b4 = compare(9, [3, 4, 5, 6, 7], 8, [11, 5, 5, 5, 5])
+    assert a4 == "Black wins"
+    assert b4 == "Straight Flush"
+    a5, b5 = compare(3, [11, 4, 4, 6, 6], 3, [3, 2, 2, 5, 5])
+    assert a5 == "Black wins"
+    assert b5 == "Two Pairs"
+    a6, b6 = compare(3, [11, 4, 4, 10, 10], 3, [3, 7, 7, 10, 10])
+    assert a6 == "White wins"
+    assert b6 == "Two Pairs"
+    a7, b7 = compare(3, [5, 7, 7, 10, 10], 3, [5, 7, 7, 10, 10])
+    assert a7 == "Tie"
+    assert b7 == "Two Pairs"
+    a8, b8 = compare(3, [5, 7, 7, 10, 10], 3, [14, 7, 7, 10, 10])
+    assert a8 == "White wins"
+    assert b8 == "Two Pairs"
+    a9, b9 = compare(2, [5, 7, 14, 10, 10], 2, [3, 6, 7, 10, 10])
+    assert a9 == "Black wins"
+    assert b9 == "Pair"
+    a10, b10 = compare(2, [5, 7, 8, 11, 11], 2, [3, 6, 14, 10, 10])
+    assert a10 == "Black wins"
+    assert b10 == "Pair"
+    a11, b11 = compare(2, [5, 7, 8, 11, 11], 2, [5, 7, 8, 11, 11])
+    assert a11 == "Tie"
+    assert b11 == "Pair"
+    a12, b12 = compare(2, [5, 7, 8, 11, 11], 9, [5, 6, 7, 8, 9])
+    assert a12 == "White wins"
+    assert b12 == "Straight Flush"
+    a13, b13 = compare(2, [5, 7, 8, 11, 11], 1, [5, 6, 7, 8, 14])
+    assert a13 == "Black wins"
+    assert b13 == "Pair"
+    a13, b13 = compare(4, [5, 7, 11, 11, 11], 4, [3, 14, 9, 9, 9])
+    assert a13 == "Black wins"
+    assert b13 == "Three of a kind"
 
